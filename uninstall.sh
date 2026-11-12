@@ -5,7 +5,7 @@
 set -uo pipefail
 
 QW_HOME="${QW_HOME:-$HOME/.quota-watch}"
-LABEL="com.chaos.quota-watch"
+LABEL="${QW_LABEL:-com.$(id -un | tr "[:upper:]" "[:lower:]").quota-watch}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 UID_NUM="$(id -u)"
 PURGE=0

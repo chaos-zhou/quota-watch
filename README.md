@@ -54,7 +54,7 @@ cd quota-watch
 | 安装主程序、配置、便捷命令 `qw` | `~/.quota-watch/` |
 | 安装 `claude` 的 tmux 包装器 | `~/.quota-watch/bin/claude` |
 | 把 `~/.quota-watch/bin` 加进 PATH | `~/.zshrc` 的 `# >>> quota-watch claude shim >>>` 标记段 |
-| 注册 launchd 定时任务（每 60 秒） | `~/Library/LaunchAgents/com.chaos.quota-watch.plist` |
+| 注册 launchd 定时任务（每 60 秒） | `~/Library/LaunchAgents/com.<user>.quota-watch.plist`（可用 `QW_LABEL` 覆盖） |
 
 装完**新开一个终端**（或 `source ~/.zshrc`）让 `claude` 走包装器。
 

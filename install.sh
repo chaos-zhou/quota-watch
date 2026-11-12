@@ -15,7 +15,7 @@ fi
 
 SRC="$(cd "$(dirname "$0")" && pwd)"
 QW_HOME="${QW_HOME:-$HOME/.quota-watch}"
-LABEL="com.chaos.quota-watch"
+LABEL="${QW_LABEL:-com.$(id -un | tr "[:upper:]" "[:lower:]").quota-watch}"
 LA_DIR="$HOME/Library/LaunchAgents"
 PLIST="$LA_DIR/$LABEL.plist"
 UID_NUM="$(id -u)"
