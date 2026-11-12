@@ -4,6 +4,8 @@
 
 **中文** · [English](./README.en.md)
 
+[![tests](https://github.com/chaos-zhou/quota-watch/actions/workflows/tests.yml/badge.svg)](https://github.com/chaos-zhou/quota-watch/actions/workflows/tests.yml)
+
 > 额度用尽把任务打断之后，不用再等到点手动点“继续”。quota-watch 会认出被打断的会话，算出额度恢复时间，到点自动把“继续”投回**原来的会话/窗口**。
 
 `macOS` · `Python 3.10+` · 本地运行、不联网 · MIT

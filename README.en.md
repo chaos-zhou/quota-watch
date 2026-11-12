@@ -4,6 +4,8 @@
 
 [中文](./README.md) · **English**
 
+[![tests](https://github.com/chaos-zhou/quota-watch/actions/workflows/tests.yml/badge.svg)](https://github.com/chaos-zhou/quota-watch/actions/workflows/tests.yml)
+
 > When a usage limit interrupts a long task, you no longer have to wait for the reset and click "continue" yourself. quota-watch identifies the interrupted session, works out when the limit resets, and sends "continue" back into the **same session / window** at that moment.
 
 `macOS` · `Python 3.10+` · runs locally, no network · MIT
