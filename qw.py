@@ -228,14 +228,21 @@ def run(cmd: list[str], timeout: int = 60, extra_env: dict | None = None) -> tup
 def notify(cfg: dict, title: str, message: str) -> None:
     if not cfg.get("notify") or cfg.get("dry_run"):
         return
-    # AppleScript 字符串转义
-    def q(s: str) -> str:
-        return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    if sys.platform == "darwin":
+        # AppleScript 字符串转义
+        def q(s: str) -> str:
+            return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
-    script = f"display notification {q(message)} with title {q('quota-watch')} subtitle {q(title)}"
-    rc, _, err = run(["osascript", "-e", script], timeout=15)
-    if rc != 0:
-        log("通知发送失败", level="warn", err=err.strip()[:200])
+        script = f"display notification {q(message)} with title {q('quota-watch')} subtitle {q(title)}"
+        rc, _, err = run(["osascript", "-e", script], timeout=15)
+        if rc != 0:
+            log("通知发送失败", level="warn", err=err.strip()[:200])
+        return
+    # Linux 桌面通知（没装 notify-send 就静默跳过）
+    if shutil.which("notify-send"):
+        rc, _, err = run(["notify-send", title, message], timeout=15)
+        if rc != 0:
+            log("通知发送失败", level="warn", err=err.strip()[:200])
 
 
 # ------------------------------------------------------- 恢复时间解析

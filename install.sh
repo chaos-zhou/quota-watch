@@ -8,8 +8,19 @@
 set -euo pipefail
 
 if [ "$(uname -s)" != "Darwin" ]; then
-  echo "quota-watch 的安装脚本依赖 macOS launchd，目前仅支持 macOS。" >&2
-  echo "其他平台可以手动运行：QW_HOME=~/.quota-watch python3 qw.py --loop 30" >&2
+  cat >&2 <<'MSG'
+quota-watch 的安装脚本只负责 macOS（launchd 常驻）。
+Linux / WSL2 可以手动安装（详见 README「平台支持」）：
+
+  mkdir -p ~/.quota-watch/bin
+  install -m 0755 qw.py ~/.quota-watch/qw.py
+  install -m 0755 bin/qw bin/claude ~/.quota-watch/bin/
+  cp -n config.example.json ~/.quota-watch/config.json
+  echo 'export PATH="$HOME/.quota-watch/bin:$PATH"' >> ~/.zshrc   # bash 用户改成 ~/.bashrc
+  ~/.quota-watch/bin/qw --status
+  # 常驻（二选一）：python3 ~/.quota-watch/qw.py --loop 30
+  #                 或写一个 systemd user unit（README 里有模板）
+MSG
   exit 1
 fi
 

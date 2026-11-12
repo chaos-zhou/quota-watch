@@ -43,6 +43,68 @@ If you are away from the keyboard, that can mean losing the whole night. quota-w
 | Codex | Codex desktop app or the `codex` CLI; resuming goes through the CLI's local app-server daemon (the watcher runs `daemon start` automatically, idempotent) |
 | tmux | Only needed for the Claude Code side (`brew install tmux`) |
 
+## Platform support
+
+| Platform | Status | Notes |
+|---|---|---|
+| **macOS** | ✅ Fully supported | `./install.sh` sets everything up, runs under launchd; both Codex and Claude sides work |
+| **Linux** | ⚠️ Works, manual install | Codex side is complete; the Claude side needs `tmux`; no launchd — run with `--loop` or a systemd user unit |
+| **Windows** | ❌ Not natively supported | The code relies on POSIX (`fcntl` file locks, unix sockets, `tmux`). Use **WSL2** and follow the Linux steps |
+
+### Linux (manual install)
+
+The installer only handles macOS launchd. On Linux, install by hand (a few lines):
+
+```bash
+git clone https://github.com/chaos-zhou/quota-watch.git
+cd quota-watch
+mkdir -p ~/.quota-watch/bin
+install -m 0755 qw.py ~/.quota-watch/qw.py
+install -m 0755 bin/qw bin/claude ~/.quota-watch/bin/
+cp -n config.example.json ~/.quota-watch/config.json
+echo 'export PATH="$HOME/.quota-watch/bin:$PATH"' >> ~/.zshrc   # use ~/.bashrc on bash
+source ~/.zshrc
+
+qw --status                    # sanity check: Codex sessions dir, codex CLI, tmux
+qw --once --dry-run            # observe detection only, no resume yet
+```
+
+Run it in the background one of two ways:
+
+```bash
+# 1) Foreground / self-managed loop (simplest)
+python3 ~/.quota-watch/qw.py --loop 30
+
+# 2) systemd user unit (recommended)
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/quota-watch.service <<'UNIT'
+[Unit]
+Description=quota-watch - resume Codex/Claude sessions after usage-limit reset
+
+[Service]
+ExecStart=/usr/bin/env python3 %h/.quota-watch/qw.py --loop 30
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+UNIT
+systemctl --user daemon-reload
+systemctl --user enable --now quota-watch
+```
+
+Linux notes:
+- The Claude side requires interactive `claude` to start through the `~/.quota-watch/bin/claude` wrapper (earlier in PATH than the real one); install `tmux` yourself;
+- Desktop notifications use `notify-send` when available, otherwise they are skipped silently;
+- The Codex side needs the `codex` CLI on PATH (or point `codex.cli` at it); the app-bundled CLI path is macOS-only, use the CLI build on Linux;
+- The offline tests themselves run on Linux (GitHub Actions, ubuntu), so detection/state-machine logic is verified there; verify real Codex/Claude end-to-end behavior on your own Linux box.
+
+### Windows
+
+Native Windows is not supported: quota-watch depends on POSIX `fcntl` file locks, unix domain sockets (Codex daemon), `tmux` (Claude side) and macOS `osascript` notifications.
+
+Use **WSL2** (Ubuntu or similar): install Codex CLI / Claude Code inside WSL, follow the Linux manual steps above, and use Windows only as the terminal.
+
 ## Install
 
 ```bash
@@ -169,7 +231,7 @@ Claude session JSONL files do not record API errors, so quota-watch watches tmux
 
 ## Known limitations
 
-- macOS only (launchd); on Linux you can run `--loop` manually, but there is no built-in service management;
+- The installer is macOS-only (launchd); Linux needs a manual install with `--loop` / systemd, Windows needs WSL2 (see "Platform support" above);
 - The Codex side needs the desktop app or the `codex` CLI daemon running; if the app is closed, the message is queued first and runs when the app/daemon comes back — which may not be exactly at the reset moment;
 - Several sessions interrupted at once will each resume and compete for the same fresh quota window — use the whitelist to control the scope;
 - It only "keeps going"; it does not review the quality of the work produced;

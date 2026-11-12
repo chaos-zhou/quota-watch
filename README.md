@@ -43,6 +43,68 @@ Claude Code 和 Codex 的额度窗口（5 小时 / 每周）会在长任务中�
 | Codex | 需要 Codex 桌面 App 或 `codex` CLI；续跑走 CLI 的本地 app-server daemon（守护会自动 `daemon start`，幂等） |
 | tmux | 仅 Claude Code 侧需要（`brew install tmux`） |
 
+## 平台支持
+
+| 平台 | 状态 | 说明 |
+|---|---|---|
+| **macOS** | ✅ 完整支持 | `./install.sh` 一键安装，launchd 常驻；Codex + Claude 两侧都可用 |
+| **Linux** | ⚠️ 可用，手动安装 | Codex 侧功能完整；Claude 侧需要 `tmux`；没有 launchd，用 `--loop` 或 systemd 用户单元常驻 |
+| **Windows** | ❌ 原生不支持 | 代码依赖 POSIX（`fcntl` 文件锁、unix socket、`tmux`）。用 **WSL2** 按 Linux 方式跑 |
+
+### Linux（手动安装）
+
+安装脚本只做 macOS 的 launchd 注册，Linux 按下面手动装（只需几行）：
+
+```bash
+git clone https://github.com/chaos-zhou/quota-watch.git
+cd quota-watch
+mkdir -p ~/.quota-watch/bin
+install -m 0755 qw.py ~/.quota-watch/qw.py
+install -m 0755 bin/qw bin/claude ~/.quota-watch/bin/
+cp -n config.example.json ~/.quota-watch/config.json
+echo 'export PATH="$HOME/.quota-watch/bin:$PATH"' >> ~/.zshrc   # bash 用户改成 ~/.bashrc
+source ~/.zshrc
+
+qw --status                    # 自检：Codex 会话目录、codex CLI、tmux
+qw --once --dry-run            # 先只看检测结果，不真正续跑
+```
+
+常驻有两种方式：
+
+```bash
+# 1) 前台/自管循环（简单）
+python3 ~/.quota-watch/qw.py --loop 30
+
+# 2) systemd 用户单元（推荐）
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/quota-watch.service <<'UNIT'
+[Unit]
+Description=quota-watch - resume Codex/Claude sessions after usage-limit reset
+
+[Service]
+ExecStart=/usr/bin/env python3 %h/.quota-watch/qw.py --loop 30
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+UNIT
+systemctl --user daemon-reload
+systemctl --user enable --now quota-watch
+```
+
+Linux 注意事项：
+- Claude 侧要求交互式 `claude` 通过 `~/.quota-watch/bin/claude` 包装器启动（PATH 里排在真实 claude 前面），tmux 需自行安装；
+- 桌面通知优先用 `notify-send`（没有就静默跳过）；
+- Codex 侧需要 `codex` CLI 在 PATH 里（或用配置 `codex.cli` 指过去）；桌面 App 内置 CLI 的路径是 macOS 专属，Linux 上请用 CLI 版；
+- 离线测试本身就在 Linux（GitHub Actions ubuntu）上跑，检测/状态机逻辑已验证；真实 Codex/Claude 的端到端行为请在 Linux 上自行确认。
+
+### Windows
+
+原生 Windows 跑不了：quota-watch 依赖 POSIX 的 `fcntl` 文件锁、unix domain socket（Codex daemon）、`tmux`（Claude 侧）和 macOS 的 `osascript` 通知。
+
+推荐 **WSL2**（Ubuntu 等）：把 Codex CLI / Claude Code 都装在 WSL 里，然后按上面 Linux 手动步骤安装，Windows 侧只当终端用。
+
 ## 安装
 
 ```bash
@@ -169,7 +231,7 @@ Claude 的会话 JSONL 不记录 API 错误，所以改为观察 tmux 窗格：
 
 ## 已知限制
 
-- 仅 macOS（launchd）；Linux 可以手动 `--loop`，但没有内置服务管理；
+- 安装脚本只支持 macOS（launchd）；Linux 需手动安装并用 `--loop` / systemd 常驻，Windows 需 WSL2（见上面「平台支持」）；
 - Codex 侧需要桌面 App 或 `codex` CLI 的 daemon 在运行；App 关闭时消息会先排队，App/daemon 起来后执行，可能不是精确到点；
 - 同时被打断多个会话时会各自续跑，抢同一个新额度窗口——用白名单控制范围；
 - 它只负责“接着跑”，不校验跑出来的结果质量；
