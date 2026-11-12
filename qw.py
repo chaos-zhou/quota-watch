@@ -18,7 +18,7 @@
    * 恢复动作（写回桌面 App 里同一个会话）：
        codex queue --thread <uuid> --message "<继续>" --resume
 
-2) Claude Code（本机走的是智谱 GLM 中转：https://open.bigmodel.cn/api/anthropic）
+2) Claude Code（官方或任意 API 中转都行：quota-watch 只看终端窗格里的报错文案）
    Claude 的会话 JSONL 不记录 API 错误，所以改为观察 tmux 窗格：
    安装的 claude 包装器（~/.quota-watch/bin/claude）会让交互式 claude 都跑在
    qa-* 的 tmux 会话里，本守护用 capture-pane 看到「429 / 额度 / rate limit」
