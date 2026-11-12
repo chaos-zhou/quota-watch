@@ -1,0 +1,53 @@
+{
+  "notify": true,
+  "dry_run": false,
+  "retention_days": 14,
+  "codex": {
+    "enabled": true,
+    "cli": "",
+    "app_bundle_id": "com.openai.codex",
+    "sessions_dir": "~/.codex/sessions",
+    "lookback_hours": 96,
+    "tail_bytes": 262144,
+    "resume_prompt": "【quota-watch 自动续跑】继续，从中断处接着做；不要重复已完成的部分，若已完成请直接说明。",
+    "limit_error_infos": [
+      "usage_limit_exceeded",
+      "rate_limit_exceeded",
+      "session_budget_exceeded"
+    ],
+    "ensure_daemon": true,
+    "daemon_start_timeout_sec": 90,
+    "max_attempts": 5,
+    "verify_window_sec": 900,
+    "backoff_min": [
+      15,
+      30,
+      60,
+      120
+    ],
+    "default_reset_sec": 18000,
+    "resume_mode": "queue",
+    "dedupe_queued": true,
+    "whitelist_mode": "all",
+    "whitelist": []
+  },
+  "claude": {
+    "enabled": true,
+    "tmux": "/opt/homebrew/bin/tmux",
+    "tmux_prefix": "qa-",
+    "resume_prompt": "【quota-watch 自动续跑】继续，从中断处接着做；不要重复已完成的部分，若已完成请直接说明。",
+    "max_attempts": 8,
+    "verify_window_sec": 900,
+    "backoff_min": [
+      10,
+      20,
+      40,
+      80,
+      160
+    ],
+    "user_activity_grace_sec": 180,
+    "pane_lines": 200,
+    "tail_lines": 14,
+    "default_reset_sec": 600
+  }
+}

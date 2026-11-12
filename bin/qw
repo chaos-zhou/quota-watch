@@ -1,0 +1,3 @@
+#!/bin/bash
+# qw —— quota-watch 的便捷入口
+exec "$(command -v python3)" "$HOME/.quota-watch/qw.py" "$@"

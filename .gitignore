@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 本地测试/冒烟产物
+.smoke/
+tests/.it.*/
+
+# macOS
+.DS_Store
+
+# 日志
+*.log

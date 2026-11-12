@@ -1,0 +1,60 @@
+#!/bin/bash
+# claude 包装器 —— 让交互式 claude 跑在 tmux 会话里（qa-*），
+# 这样 quota-watch 才能在额度窗口恢复后把「继续」打回你原来的窗口。
+#
+# 直通（不套 tmux）的情况：
+#   * 已经在 tmux 里
+#   * 非交互调用：-p/--print、标准输入输出不是终端（管道、脚本）
+#   * 查询/管理类子命令：--version/-V/--help/-h/update/doctor/mcp/plugin/completion
+#   * 设置了 QW_NO_TMUX=1
+# 找不到 tmux 时也直通，不会阻止 claude 正常使用。
+
+REAL="${QW_CLAUDE_REAL:-/usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe}"
+TMUX_BIN="${QW_TMUX_BIN:-/opt/homebrew/bin/tmux}"
+PREFIX="${QW_TMUX_PREFIX:-qa-}"
+
+if [ ! -x "$REAL" ]; then
+  PATH_CLAUDE="$(command -v claude 2>/dev/null || true)"
+  for p in \
+    "$PATH_CLAUDE" \
+    "$HOME/.claude/local/claude" \
+    /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe \
+    "$HOME/.local/share/claude/bin/claude" \
+    /usr/local/bin/claude; do
+    if [ -x "$p" ] && [ "$p" != "$0" ] && [ "$(cd "$(dirname "$p")" && pwd)/$(basename "$p")" != "$(cd "$(dirname "$0")" && pwd)/$(basename "$0")" ]; then
+      REAL="$p"; break
+    fi
+  done
+fi
+
+if [ ! -x "$REAL" ]; then
+  echo "claude 包装器：找不到真实 claude 二进制（设置 QW_CLAUDE_REAL 指定）" >&2
+  exit 127
+fi
+
+[ -n "$QW_NO_TMUX" ] && exec "$REAL" "$@"
+
+for a in "$@"; do
+  case "$a" in
+    -p|--print|--version|-V|--help|-h|update|doctor|mcp|plugin|completion|setup-token|--output-format=*|--max-budget-usd)
+      exec "$REAL" "$@" ;;
+  esac
+done
+
+if [ -z "$TMUX" ] && [ -t 0 ] && [ -t 1 ]; then
+  if [ ! -x "$TMUX_BIN" ]; then TMUX_BIN="$(command -v tmux 2>/dev/null)"; fi
+  if [ -n "$TMUX_BIN" ] && [ -x "$TMUX_BIN" ]; then
+    key=$(printf '%s' "$PWD" | md5 -q | cut -c1-8)
+    base=$(basename "$PWD" | tr -cd 'A-Za-z0-9_-')
+    [ -n "$base" ] || base="root"
+    sess="${PREFIX}${base}-${key}"
+    if "$TMUX_BIN" has-session -t "=$sess" 2>/dev/null; then
+      exec "$TMUX_BIN" attach-session -t "=$sess"
+    fi
+    # tmux 用 shell 执行这条命令，用 %q 逐个转义参数
+    cmd=$(printf '%q ' "$REAL" "$@")
+    exec "$TMUX_BIN" new-session -s "$sess" -c "$PWD" "$cmd"
+  fi
+fi
+
+exec "$REAL" "$@"
